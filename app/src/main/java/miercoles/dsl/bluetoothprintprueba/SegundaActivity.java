@@ -3,6 +3,7 @@ package miercoles.dsl.bluetoothprintprueba;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
@@ -47,4 +48,26 @@ public class SegundaActivity extends AppCompatActivity {
     }
 
 
+    public void imprimir(View view) {
+        int fuente = Integer.parseInt(spnFuente.getSelectedItem().toString());
+        int negrita = spnNegrita.getSelectedItem().toString().equals("Si") ? 1 : 0;
+        int ancho = Integer.parseInt(spnAncho.getSelectedItem().toString());
+        int alto = Integer.parseInt(spnAlto.getSelectedItem().toString());
+        String texto = edtTexto.getText().toString() + "\n";
+
+        Intent intent = new Intent();
+
+        intent.putExtra("texto",texto);
+        intent.putExtra("fuente",fuente);
+        intent.putExtra("negrita",negrita);
+        intent.putExtra("ancho",ancho);
+        intent.putExtra("alto",alto);
+
+        setResult(RESULT_OK, intent);
+        finish();
+    }
+
+    public void volver(View view) {
+        this.finish();
+    }
 }

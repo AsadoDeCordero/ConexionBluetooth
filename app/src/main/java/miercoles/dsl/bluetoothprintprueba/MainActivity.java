@@ -1,61 +1,33 @@
 package miercoles.dsl.bluetoothprintprueba;
 
-import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.os.Build;
-import android.support.annotation.RequiresApi;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.annotation.RequiresApi;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
-import com.bumptech.glide.load.resource.bitmap.BitmapTransformation;
-import com.kosalgeek.android.photoutil.GalleryPhoto;
-
-import org.apache.commons.io.FileUtils;
-
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
-
-import miercoles.dsl.bluetoothprintprueba.listas.dispositivosbluetooth.DibujarActivity;
-import miercoles.dsl.bluetoothprintprueba.utilidades.Constantes;
-import miercoles.dsl.bluetoothprintprueba.utilidades.FotoDeCamara;
-import miercoles.dsl.bluetoothprintprueba.utilidades.ManipuladorImagen;
-import miercoles.dsl.bluetoothprintprueba.utilidades.PrintBitmap;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final int REQUEST_DISPOSITIVO = 425;
     private static final String TAG_DEBUG = "tag_debug";
+    private static final int CODIGO_SEGUNDA_ACTIVITY = 1313;
 
     private TextView txtLabel;
     private EditText edtTexto;
@@ -105,39 +77,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.btn_imprimir_texto) {
-            if (bluetoothSocket != null) {
-                try {
-                    String texto = edtTexto.getText().toString() + "\n";
 
-                    int fuente = Integer.parseInt(spnFuente.getSelectedItem().toString());
-                    int negrita = spnNegrita.getSelectedItem().toString().equals("Si") ? 1 : 0;
-                    int ancho = Integer.parseInt(spnAncho.getSelectedItem().toString());
-                    int alto = Integer.parseInt(spnAlto.getSelectedItem().toString());
+            String texto = edtTexto.getText().toString() + "\n";
 
-                    // Para que acepte caracteres espciales
-                    outputStream.write(0x1C);
-                    outputStream.write(0x2E); // Cancelamos el modo de caracteres chino (FS .)
-                    outputStream.write(0x1B);
-                    outputStream.write(0x74);
-                    outputStream.write(0x10); // Seleccionamos los caracteres escape (ESC t n) - n = 16(0x10) para WPC1252
+            int fuente = Integer.parseInt(spnFuente.getSelectedItem().toString());
+            int negrita = spnNegrita.getSelectedItem().toString().equals("Si") ? 1 : 0;
+            int ancho = Integer.parseInt(spnAncho.getSelectedItem().toString());
+            int alto = Integer.parseInt(spnAlto.getSelectedItem().toString());
 
-                    outputStream.write(Objects.requireNonNull(getByteString(texto, negrita, fuente, ancho, alto)));
-                    outputStream.write("\n\n".getBytes());
+            imprimir(texto, fuente, negrita, ancho, alto);
 
-                } catch (IOException e) {
-                    Log.e(TAG_DEBUG, "Error al escribir en el socket");
 
-                    Toast.makeText(this, "Error al interntar imprimir texto", Toast.LENGTH_SHORT).show();
-                    e.printStackTrace();
-                }
-            } else {
-                Log.e(TAG_DEBUG, "Socket nulo");
-
-                txtLabel.setText("Impresora no conectada");
-            }
         }
-        if(view.getId() == R.id.btn_cerrar_conexion){
+        if (view.getId() == R.id.btn_cerrar_conexion) {
             cerrarConexion();
+        }
+    }
+
+    private void imprimir(String texto, int fuente, int negrita, int ancho, int alto) {
+        if (bluetoothSocket != null) {
+            try {
+                Toast.makeText(this, "Se esta imprimiendo [ " + texto + " ] con fuente " + fuente + ", negrita " + negrita + ", ancho " + ancho + " y alto " + alto, Toast.LENGTH_SHORT).show();
+                // Para que acepte caracteres espciales
+                outputStream.write(0x1C);
+                outputStream.write(0x2E); // Cancelamos el modo de caracteres chino (FS .)
+                outputStream.write(0x1B);
+                outputStream.write(0x74);
+                outputStream.write(0x10); // Seleccionamos los caracteres escape (ESC t n) - n = 16(0x10) para WPC1252
+
+                outputStream.write(Objects.requireNonNull(getByteString(texto, negrita, fuente, ancho, alto)));
+                outputStream.write("\n\n".getBytes());
+            } catch (IOException e) {
+                Log.e(TAG_DEBUG, "Error al escribir en el socket");
+
+                Toast.makeText(this, "Error al interntar imprimir texto", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+            } catch (Exception e) {
+                Log.e(TAG_DEBUG, "Fallo por otro error");
+                Toast.makeText(this, "Se ha producido un error inesperado", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+            }
+        } else {
+            Log.e(TAG_DEBUG, "Socket nulo");
+
+            txtLabel.setText("Impresora no conectada");
         }
     }
 
@@ -154,13 +137,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
+            if (requestCode == CODIGO_SEGUNDA_ACTIVITY) {
+                imprimir(data.getStringExtra("texto"), data.getIntExtra("fuente", 0), data.getIntExtra("negrita", 0)
+                        , data.getIntExtra("ancho", 0), data.getIntExtra("alto", 0));
+            }
             if (requestCode == REQUEST_DISPOSITIVO) {
                 txtLabel.setText("Cargando...");
 
                 dirDisp = Objects.requireNonNull(data.getExtras()).getString("DireccionDispositivo");
                 nomDisp = data.getExtras().getString("NombreDispositivo");
-                System.out.println("DIRECCIÓN: "+dirDisp);
-                System.out.println("NOMBRE: "+nomDisp);
+                System.out.println("DIRECCIÓN: " + dirDisp);
+                System.out.println("NOMBRE: " + nomDisp);
 
                 // Obtenemos el dispositivo con la direccion seleccionada en la lista
                 dispositivoBluetooth = bluetoothAdapter.getRemoteDevice(dirDisp);
@@ -259,10 +246,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         cerrarConexion();
     }
 
-    public void irSiguiente(View vista){
+    public void irSiguiente(View vista) {
         Context contexto = getApplicationContext();
         Intent intento = new Intent(contexto, SegundaActivity.class);
-        startActivity(intento);
+        startActivityForResult(intento, CODIGO_SEGUNDA_ACTIVITY);
     }
 
 }
